@@ -1,73 +1,64 @@
 
-# 🔐 Python Password Strength Checker
+# 🔐 Python Password Strength Analyzer
 
-A beginner-friendly cybersecurity project built with Python to evaluate password strength and generate stronger password suggestions.
+A Python cybersecurity project that analyzes password strength using character variety, password length, and an estimated entropy score.
 
 ## Features
 
-- Checks password length
-- Detects lowercase and uppercase letters
-- Checks for numbers and special symbols
-- Identifies selected common passwords
-- Detects repeated-character patterns
-- Provides password improvement suggestions
+- Calculates estimated password entropy in bits
+- Scores passwords out of 100 using basic rules
+- Classifies passwords as Weak, Moderate, or Strong
+- Detects selected common passwords
+- Identifies repeated-character patterns
 - Generates random password alternatives using Python's `secrets` module
 - Hides password input in the terminal
-- Does not save passwords to a file or database
+- Includes automated unit tests
 
-## Technologies Used
+## Technologies
 
 - Python 3
-- Regular expressions (`re`)
-- `string` module
-- `secrets` module
-- `getpass` module
+- math
+- re
+- string
+- secrets
+- getpass
+- unittest
 
 ## Requirements
 
-- Python 3.10 or later
-- No external packages required
+Python 3.10 or later. No third-party packages are required.
 
-## How to Run
+## Run the Analyzer
 
-1. Clone or download this repository.
-2. Open a terminal in the project directory.
-3. Run:
+```bash
+python password_checker.py
+```
 
-   ```bash
-   python password_checker.py
-   ```
+Enter a fictional test password when prompted.
 
-4. Enter a fictional test password when prompted.
+## Run Automated Tests
 
-## Example
+```bash
+python -m unittest -v
+```
 
-For a test password such as `hello123`, the program may report a moderate strength rating and suggest improvements.
+## How Entropy Is Estimated
 
-## Learning Objectives
+The analyzer estimates entropy using:
 
-- Understand basic password security concepts
-- Practice Python functions and conditional statements
-- Learn regular expressions
-- Explore secure random password generation
-- Practice Git and GitHub
+entropy = password length × log2(character-set size)
+
+The character-set size is estimated from the types of characters present in the password.
+
+This is a simplified estimate and does not accurately measure every password's real-world resistance to guessing.
 
 ## Limitations
 
-This project uses simple heuristic rules. Its score is not a guarantee of password security and does not check breached-password databases or accurately estimate guessing difficulty.
-
-## Future Improvements
-
-- Add automated unit tests
-- Improve password strength estimation
-- Add password history and reuse prevention
-- Create a graphical user interface
+- The scoring system uses simple heuristic rules.
+- Common-password detection uses a small built-in list.
+- It does not check breached-password databases.
+- It does not store or prevent reuse of previous passwords.
 
 ## Disclaimer
 
-For educational purposes only. Never enter passwords that you currently use for personal accounts.
-
----
-
-Created as a cybersecurity learning project.
-
+For educational purposes only. Never enter passwords used for real personal accounts.

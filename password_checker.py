@@ -1,4 +1,5 @@
 
+import math
 import re
 import string
 import secrets
@@ -6,90 +7,95 @@ import getpass
 
 
 COMMON_PASSWORDS = {
-    "password",
-    "password123",
-    "123456",
-    "12345678",
-    "qwerty",
-    "admin",
-    "letmein",
-    "iloveyou",
+    "123456", "password", "123456789", "12345678",
+    "12345", "qwerty", "abc123", "password1",
+    "admin", "letmein", "welcome", "monkey",
 }
 
 
-def check_password(password):
+def calculate_entropy(password: str) -> float:
+    """Estimate password entropy using the tutorial's character-set method."""
+    charset = 0
+
+    if any(c.islower() for c in password):
+        charset += 26
+
+    if any(c.isupper() for c in password):
+        charset += 26
+
+    if any(c.isdigit() for c in password):
+        charset += 10
+
+    if any(c in string.punctuation for c in password):
+        charset += len(string.punctuation)
+
+    if any(c.isspace() for c in password):
+        charset += 1
+
+    if charset == 0:
+        return 0
+
+    entropy = len(password) * math.log2(charset)
+    return round(entropy, 2)
+
+
+def score_password(password: str) -> dict:
+    """Calculate a rule-based password score and strength verdict."""
     score = 0
-    feedback = []
+    length = len(password)
+    entropy = calculate_entropy(password)
 
-    print("\nAnalyzing password...")
+    # Rule-based scoring, following the tutorial screenshots
+    if length >= 8:
+        score += 20
 
-    # Check password length
-    if len(password) >= 8:
-        score += 1
-    else:
-        feedback.append("Use at least 8 characters.")
+    if length >= 12:
+        score += 10
 
-    if len(password) >= 12:
-        score += 1
-    else:
-        feedback.append("Consider using 12 or more characters.")
+    if any(c.islower() for c in password):
+        score += 10
 
-    # Check lowercase letters
-    if re.search(r"[a-z]", password):
-        score += 1
-    else:
-        feedback.append("Add lowercase letters (a-z).")
+    if any(c.isupper() for c in password):
+        score += 10
 
-    # Check uppercase letters
-    if re.search(r"[A-Z]", password):
-        score += 1
-    else:
-        feedback.append("Add uppercase letters (A-Z).")
+    if any(c.isdigit() for c in password):
+        score += 10
 
-    # Check numbers
-    if re.search(r"\d", password):
-        score += 1
-    else:
-        feedback.append("Add numbers (0-9).")
+    if any(c in string.punctuation for c in password):
+        score += 10
 
-    # Check special symbols
-    if any(char in string.punctuation for char in password):
-        score += 1
-    else:
-        feedback.append("Consider adding a special symbol.")
+    if entropy > 50:
+        score += 20
 
-    # Check common passwords
+    # Penalize common passwords
     if password.casefold() in COMMON_PASSWORDS:
-        score = 0
-        feedback.append("This is a commonly used password.")
+        score = min(score, 10)
 
-    # Check three or more repeated characters in a row
+    # Penalize predictable repeated characters
     if re.search(r"(.)\1{2,}", password):
-        score = max(0, score - 1)
-        feedback.append(
-            "Avoid repeating the same character three or more times."
-        )
+        score = max(0, score - 10)
 
-    # Warn about passwords using only letters or only numbers
-    if password.isalpha() or password.isdigit():
-        feedback.append("Avoid using only letters or only numbers.")
+    score = min(score, 100)
 
-    # Determine password strength
-    if password.casefold() in COMMON_PASSWORDS:
-        strength = "Very Weak"
-    elif len(password) < 8 or score <= 2:
-        strength = "Weak"
-    elif score <= 4:
-        strength = "Moderate"
+    if password.casefold() in COMMON_PASSWORDS or length < 8:
+        verdict = "Weak"
+    elif score < 40:
+        verdict = "Weak"
+    elif score < 70:
+        verdict = "Moderate"
     else:
-        strength = "Strong"
+        verdict = "Strong"
 
-    return strength, score, feedback
+    return {
+        "length": length,
+        "entropy": entropy,
+        "score": score,
+        "verdict": verdict,
+    }
 
 
-def generate_password(length=16):
-    """Generate a random password using Python's secrets module."""
-
+def generate_password(length: int = 16) -> str:
+    """Generate a random password containing several character types."""
     if length < 12:
         raise ValueError("Password length must be at least 12.")
 
@@ -98,7 +104,8 @@ def generate_password(length=16):
     digits = string.digits
     symbols = "!@#$%^&*()-_=+?"
 
-    # Include at least one character from every category
+    characters = lowercase + uppercase + digits + symbols
+
     password_chars = [
         secrets.choice(lowercase),
         secrets.choice(uppercase),
@@ -106,23 +113,18 @@ def generate_password(length=16):
         secrets.choice(symbols),
     ]
 
-    all_chars = lowercase + uppercase + digits + symbols
-
-    # Fill the remaining length
     password_chars.extend(
-        secrets.choice(all_chars) for _ in range(length - 4)
+        secrets.choice(characters) for _ in range(length - 4)
     )
 
-    # Securely shuffle the characters
     secrets.SystemRandom().shuffle(password_chars)
-
     return "".join(password_chars)
 
 
 def main():
-    print("=" * 45)
-    print("       PASSWORD STRENGTH CHECKER")
-    print("=" * 45)
+    print("=" * 40)
+    print("     PASSWORD STRENGTH ANALYZER")
+    print("=" * 40)
 
     password = getpass.getpass("Enter a test password: ")
 
@@ -130,25 +132,27 @@ def main():
         print("No password entered.")
         return
 
-    strength, score, feedback = check_password(password)
+    result = score_password(password)
 
-    print(f"\nPassword strength: {strength}")
-    print(f"Basic rule score: {score}/6")
+    print("\n--- Password Analysis ---")
+    print(f"Length:  {result['length']}")
+    print(f"Entropy: {result['entropy']} bits")
+    print(f"Score:   {result['score']} / 100")
+    print(f"Verdict: {result['verdict']}")
 
-    if feedback:
+    if result["verdict"] != "Strong":
         print("\nSuggestions:")
-        for suggestion in feedback:
-            print(f"- {suggestion}")
-    else:
-        print("\nNo basic improvements suggested.")
+        if result["length"] < 12:
+            print("- Consider using a longer password.")
+        if result["entropy"] <= 50:
+            print("- Use a longer, less predictable password.")
+        if password.casefold() in COMMON_PASSWORDS:
+            print("- Avoid commonly used passwords.")
 
-    if strength in ("Weak", "Very Weak", "Moderate"):
-        print("\nSuggested stronger alternative:")
+        print("\nSuggested alternative:")
         print(generate_password())
 
-    print("\nPrivacy notice:")
-    print("This program does not save passwords to a file or database.")
-    print("Use a password manager to store generated passwords safely.")
+    print("\nThe program does not save your password.")
 
 
 if __name__ == "__main__":
